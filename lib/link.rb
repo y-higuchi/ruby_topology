@@ -6,6 +6,11 @@ class Link
   attr_reader :dpid2
   attr_reader :port1
   attr_reader :port2
+  
+  alias :src_dpid :dpid1
+  alias :dst_dpid :dpid2
+  alias :src_port_no :port1
+  alias :dst_port_no :port2
 
 
   def initialize dpid, packet_in
