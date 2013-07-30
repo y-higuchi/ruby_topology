@@ -6,7 +6,8 @@ module View
     include Trema::Logger
 
 
-    def update topology
+    def update event
+      topology = event.topology
       topology.each_link do | each |
         info each.to_s
       end

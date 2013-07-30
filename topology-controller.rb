@@ -29,7 +29,7 @@ class TopologyController < Controller
 
 
   def features_reply dpid, features_reply
-    features_reply.physical_ports.select( &:up? ).each do | each |
+    features_reply.physical_ports.each do | each |
       @topology.add_port dpid, each
     end
   end
@@ -43,7 +43,14 @@ class TopologyController < Controller
   def port_status dpid, port_status
     updated_port = port_status.port
     return if updated_port.local?
-    @topology.update_port dpid, updated_port
+    case port_status.reason
+    when OFPPR_ADD
+      @topology.add_port dpid, updated_port
+    when OFPPR_DELETE
+      @topology.delete_port dpid, updated_port
+    when OFPPR_MODIFY
+      @topology.update_port dpid, updated_port
+    end
   end
 
 
@@ -67,6 +74,7 @@ class TopologyController < Controller
 
   def send_lldp dpid, ports
     ports.each do | each |
+      next if not each.up?
       port_number = each.number
       send_packet_out(
         dpid,

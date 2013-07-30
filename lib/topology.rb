@@ -5,6 +5,24 @@ require "trema-extensions/port"
 
 
 #
+# Topology Event class to pass to observer
+#
+class TopologyEvent
+  attr_reader :action
+  attr_reader :subject
+  attr_reader :topology
+
+  # @param [Symbol] action One of :add, :delete, :update
+  # @param [Number, (Number,Trema::Port), Link] subject Switch dpid, [dpid, Port], or Link
+  # @param [Topology] topology
+  def initialize action, subject, topology
+    @action = act
+    @subject = subj
+    @topology = topo
+  end
+end
+
+#
 # Topology information containing the list of known switches, ports,
 # and links.
 #
@@ -17,38 +35,59 @@ class Topology
   def_delegator :@links, :each, :each_link
 
 
-  def initialize controller
+  def initialize observer
+    # dpid -> [Trema::Port]
     @ports = Hash.new { [].freeze }
+    # [Link]
     @links = []
-    add_observer controller
+    add_observer observer
   end
 
+  def add_switch dpid
+    @ports[ dpid ]
+    change
+    notify_observers TopologyEvent.new(:add, dpid, self)
+  end
 
   def delete_switch dpid
     @ports[ dpid ].each do | each |
       delete_port dpid, each
     end
     @ports.delete dpid
+    change
+    notify_observers TopologyEvent.new(:delete, dpid, self)
   end
 
 
   def update_port dpid, port
-    if port.down?
-      delete_port dpid, port
-    elsif port.up?
-      add_port dpid, port
+    deleted = @ports[ dpid ].reject! {|e| e.number == port.number }
+    @ports[ dpid ] << port
+    if deleted != nil
+      # port added event
+      change
+      notify_observers TopologyEvent.new(:add, [dpid,port], self)
+      # switch update event
+      change
+      notify_observers TopologyEvent.new(:update, dpid, self)
+    else
+      # port update event
+      change
+      notify_observers TopologyEvent.new(:update, [dpid,port], self)
     end
   end
 
 
   def add_port dpid, port
-    @ports[ dpid ] += [ port ]
+    update_port dpid, port
   end
 
 
   def delete_port dpid, port
-    @ports[ dpid ] -= [ port ]
     delete_link_by dpid, port
+    @ports[ dpid ] -= [ port ]
+    # port delete event
+    change
+    notify_observers TopologyEvent.new(:delete, [dpid,port], self)
   end
 
 
@@ -60,7 +99,8 @@ class Topology
       @links << link
       @links.sort!
       changed
-      notify_observers self
+      # link added event
+      notify_observers TopologyEvent.new(:add, link, self)
     end
   end
 
@@ -74,10 +114,11 @@ class Topology
     @links.each do | each |
       if each.has?( dpid, port.number )
         changed
-        @links -= [ each ]
+        # link deleted event
+        notify_observers TopologyEvent.new(:delete, each, self)
       end
     end
-    notify_observers self
+    @links.delete_if {|e| e.has?( dpid, port.number ) }
   end
 end
 

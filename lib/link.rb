@@ -36,7 +36,7 @@ class Link
 
 
   def to_s
-    format "%#x (port %d) <-> %#x (port %d)", dpid1, port1, dpid2, port2
+    format "%#x (port %d) --> %#x (port %d)", dpid1, port1, dpid2, port2
   end
 
 

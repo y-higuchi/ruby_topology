@@ -8,7 +8,8 @@ module View
     end
 
 
-    def update topology
+    def update event
+      topology = event.topology
       g = GraphViz.new( :G, :use => "neato", :overlap => false, :splines => true )
 
       switch = {}
