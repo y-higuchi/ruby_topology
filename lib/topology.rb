@@ -62,7 +62,7 @@ class Topology
   def update_port dpid, port
     deleted = @ports[ dpid ].reject! {|e| e.number == port.number }
     @ports[ dpid ] << port
-    if deleted != nil
+    if deleted == nil
       # port added event
       change
       notify_observers TopologyEvent.new(:add, [dpid,port], self)
@@ -111,14 +111,18 @@ class Topology
 
 
   def delete_link_by dpid, port
+    to_delete = []
     @links.each do | each |
       if each.has?( dpid, port.number )
-        changed
-        # link deleted event
-        notify_observers TopologyEvent.new(:delete, each, self)
+        to_delete << each
       end
     end
-    @links.delete_if {|e| e.has?( dpid, port.number ) }
+    to_delete.each do |link|
+      @links.delete(link)
+      changed
+      # link deleted event
+      notify_observers TopologyEvent.new(:delete, link, self)
+    end
   end
 end
 
