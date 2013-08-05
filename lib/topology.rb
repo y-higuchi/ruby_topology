@@ -44,7 +44,7 @@ class Topology
   end
 
   def add_switch dpid
-    @ports[ dpid ]
+    @ports[ dpid ] = [] if not @ports.include?(dpid)
     change
     notify_observers TopologyEvent.new(:add, dpid, self)
   end
@@ -60,8 +60,8 @@ class Topology
 
 
   def update_port dpid, port
-    deleted = @ports[ dpid ].reject! {|e| e.number == port.number }
-    @ports[ dpid ] << port
+    deleted = @ports[ dpid ].reject! { |e| e.number == port.number }
+    @ports[ dpid ] += [ port ]
     if deleted == nil
       # port added event
       change
@@ -84,7 +84,7 @@ class Topology
 
   def delete_port dpid, port
     delete_link_by dpid, port
-    @ports[ dpid ] -= [ port ]
+    @ports[ dpid ].delete_if { |e| e.number == port.number }
     # port delete event
     change
     notify_observers TopologyEvent.new(:delete, [dpid,port], self)
