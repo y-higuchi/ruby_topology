@@ -24,6 +24,7 @@ class TopologyController < Controller
 
 
   def switch_ready dpid
+    @topology.add_switch dpid
     send_message dpid, FeaturesRequest.new
   end
 

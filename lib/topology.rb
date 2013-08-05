@@ -16,9 +16,9 @@ class TopologyEvent
   # @param [Number, (Number,Trema::Port), Link] subject Switch dpid, [dpid, Port], or Link
   # @param [Topology] topology
   def initialize action, subject, topology
-    @action = act
-    @subject = subj
-    @topology = topo
+    @action = action
+    @subject = subject
+    @topology = topology
   end
 end
 
@@ -45,7 +45,7 @@ class Topology
 
   def add_switch dpid
     @ports[ dpid ] = [] if not @ports.include?(dpid)
-    change
+    changed
     notify_observers TopologyEvent.new(:add, dpid, self)
   end
 
@@ -54,7 +54,7 @@ class Topology
       delete_port dpid, each
     end
     @ports.delete dpid
-    change
+    changed
     notify_observers TopologyEvent.new(:delete, dpid, self)
   end
 
@@ -64,14 +64,14 @@ class Topology
     @ports[ dpid ] += [ port ]
     if deleted == nil
       # port added event
-      change
+      changed
       notify_observers TopologyEvent.new(:add, [dpid,port], self)
       # switch update event
-      change
+      changed
       notify_observers TopologyEvent.new(:update, dpid, self)
     else
       # port update event
-      change
+      changed
       notify_observers TopologyEvent.new(:update, [dpid,port], self)
     end
   end
@@ -86,7 +86,7 @@ class Topology
     delete_link_by dpid, port
     @ports[ dpid ].delete_if { |e| e.number == port.number }
     # port delete event
-    change
+    changed
     notify_observers TopologyEvent.new(:delete, [dpid,port], self)
   end
 
